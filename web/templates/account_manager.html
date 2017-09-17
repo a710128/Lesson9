@@ -1,0 +1,33 @@
+<h2 style="margin-left: 20px;">Account Manager</h2>
+<style>
+#add-account-div table tr th{
+    width: 60px;
+    text-align: right;
+    padding-right: 25px;
+}
+#add-account-div table tr td input {
+    width: 100%;
+}
+
+#add-account-div table tr td,
+#add-account-div table tr th {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+</style>
+<ul class="list-group">
+    <li class="list-group-item"> Test Account #1</li>
+    <li class="list-group-item">Test Account #2</li>
+    <li class="list-group-item">test Account 3</li>
+    <li class="list-group-item">
+        <div id="add-account-div" style="width: 100%; text-align: center;">
+            <table width="300px" style="margin-left: auto; margin-right: auto;">
+                <tr><th>User:</th><td><input id="add-account-user"></td></tr>
+                <tr><th>Password:</th><td><input id="add-account-pass" type="password"></td></tr>
+                <tr><td colspan="2"><button style="float:right;" class="btn btn-default">Add</button></td></tr>
+            </table>
+        </div>
+    </li>
+
+</ul>
+</ul>

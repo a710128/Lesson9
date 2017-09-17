@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+    <script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap.min.js') }}"></script>
+    <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='default.css') }}" rel="stylesheet">
+</head>
+<body>
+<script>
+    $(document).ready(function(){
+        (function(time){
+            var t = time;
+            $('#clock span').text(t.toLocaleString());
+            setInterval(function(){
+                t.setSeconds(t.getSeconds() + 1);
+                $('#clock span').text(t.toLocaleString());
+            }, 1000);
+        })(new Date("{{ timer }}"));
+        var adjustHeightAndWidth = function() {
+            $('.page_main').height(window.innerHeight - $('.navigation').height());
+            $('.page_main .right_bar').width($(".page_main").innerWidth() - $(".left_bar").width());
+        }
+
+        adjustHeightAndWidth();
+        $(window).resize(function(){
+            adjustHeightAndWidth();
+        });
+
+        var updateAccountList = function() {
+            $.post('/account/list', {}, function(data){
+                $('#account-list-content').html(data);
+            });
+        }
+
+        $('#account-manager').click(function() {
+            $.post('/account/manager', {}, function(data){
+                $('div.right_bar').html(data);
+                $('#account-list .list-group-item.active').removeClass('active');
+                $('#account-manager').addClass('active');
+            });
+        });
+
+        updateAccountList();
+    });
+
+</script>
+
+<div class="navigation">
+    <div id="title"><span>{{ 'Lesson9' }}</span></div>
+    <div id="clock"><span></span></span></div>
+</div>
+<div class="page_main">
+    <div class="left_bar">
+        <div id="account-list" class="list-group">
+            <a class="list-group-item disabled header">Account List</a>
+            <div id="account-list-content">
+            </div>
+            <a id="account-manager" class="list-group-item" href="#">
+                <span class="glyphicon glyphicon-cog"></span>
+            </a>
+        </div>
+    </div>
+    <div class="right_bar">
+        <h1 style="margin-left: 20px;">Welcome!</h1>
+    </div>
+</div>
+</body>
+</html>

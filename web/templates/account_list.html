@@ -1,0 +1,10 @@
+{% for user in users %}
+<a class="list-group-item account-item" href="#">
+    <p class="account-user"> User: {{ user.name }}</p>
+    {% if user.broken %}
+        <p class="account-info" style="color:red;"><span>Broken</span></p>
+    {% else %}
+        <p class="account-info" style="color:green;"><span>Working</span></p>
+    {% endif %}
+</a>
+{% endfor %}
