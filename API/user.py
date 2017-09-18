@@ -77,7 +77,11 @@ class User:
         self.cookie = {}
         self.courses = []
         self.broken = False
-        self.login()
+        try:
+            self.login()
+        except Exception as e:
+            print('User:', self.name, 'Error:', e)
+            self.broken = True
 
     def login(self, veriFunc=None) -> bool:
         """

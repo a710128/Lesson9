@@ -1,7 +1,7 @@
 import pickle
 import threading
 from room.room import Room
-from API import User
+from API import User, UserException
 
 
 class Manager:
@@ -16,14 +16,57 @@ class Manager:
         self.ship = ship    # User -> Room
         self.__lock = threading.Lock()
 
-    def __del__(self):
-        """
+    def dump(self):
         pickle.dump({
             'rooms': self.rooms,
             'ship': self.ship
         }, open('backup.pkl', 'wb'))
-        """
-        pass
+
+    def getUser(self, uid: str) -> User:
+        assert isinstance(uid, str), "Parameter type error"
+        ret = None
+        self.__lock.acquire()
+        for u in self.ship.keys():
+            if u.name == uid:
+                ret = u
+                break
+        self.__lock.release()
+        return ret
+
+    def addUser(self, uid: str, passwd: str) -> User:
+        assert isinstance(uid, str) and isinstance(passwd, str), "Parameter type error"
+        if self.getUser(uid) is not None:
+            return None
+        try:
+            user = User(uid, passwd)
+        except UserException as e:
+            return None
+        self.__lock.acquire()
+        self.ship[user] = None
+        self.__lock.release()
+        return user
+
+    def delUser(self, uid):
+        user = self.getUser(uid)
+        if user is None:
+            return
+        self.__lock.acquire()
+        if self.ship[user] is not None:
+            self.ship[user].delUser(user)
+            self.ship[user] = None
+        del self.ship[user]
+        del user
+        self.__lock.release()
+
+    def exitRoom(self, uid):
+        user = self.getUser(uid)
+        if user is None:
+            return
+        self.__lock.acquire()
+        if self.ship[user] is not None:
+            self.ship[user].delUser(user)
+            self.ship[user] = None
+        self.__lock.release()
 
     def joinRoom(self, room, user: User):
         assert isinstance(room, (Room, int)) and isinstance(user, User), "Parameter type error"
@@ -55,6 +98,7 @@ class Manager:
 
     def _roomHandler(self, room: Room):
         room.loop()  # start room loop
+        # del room
         self.__lock.acquire()
         it = 0
         while it < len(self.rooms):

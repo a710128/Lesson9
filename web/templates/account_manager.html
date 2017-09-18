@@ -14,17 +14,52 @@
     padding-top: 5px;
     padding-bottom: 5px;
 }
+
+a:hover {
+    text-decoration: none;
+}
 </style>
-<ul class="list-group">
-    <li class="list-group-item"> Test Account #1</li>
-    <li class="list-group-item">Test Account #2</li>
-    <li class="list-group-item">test Account 3</li>
+<script>
+$(function(){
+    $('#add-account-button').click(function(){
+        $.post('/account/manager/add', {
+            'uid': $('#add-account-user').val(),
+            'pass': $('#add-account-pass').val()
+        }, function(data){
+            updateAccountList();
+            openAccountManager();
+        });
+    });
+    var lis = $('ul#account-list li');
+    for (var i = 0; i < lis.length; ++ i) {
+        (function(uid, btn) {
+            btn.click(function(){
+                $.post('/account/manager/del', {
+                    'uid': uid
+                }, function(data) {
+                    updateAccountList();
+                    openAccountManager();
+                });
+            });
+        })(lis.eq(i).find('span a').text(), lis.eq(i).find('button'));
+    }
+});
+</script>
+<ul class="list-group" id="account-list">
+{% for user in users %}
+    <li class="list-group-item" style="line-height: 25px; position: relative;">
+        <span style="font-size: 20px;">User: <a>{{ user.name }}</a></span>
+        <div style="display: inline-block; position: absolute; right: 25px; top: 7px;">
+            <button class="btn btn-danger">X</button>
+        </div>
+    </li>
+{% endfor %}
     <li class="list-group-item">
         <div id="add-account-div" style="width: 100%; text-align: center;">
             <table width="300px" style="margin-left: auto; margin-right: auto;">
                 <tr><th>User:</th><td><input id="add-account-user"></td></tr>
                 <tr><th>Password:</th><td><input id="add-account-pass" type="password"></td></tr>
-                <tr><td colspan="2"><button style="float:right;" class="btn btn-default">Add</button></td></tr>
+                <tr><td colspan="2"><button id="add-account-button" style="float:right;" class="btn btn-default">Add</button></td></tr>
             </table>
         </div>
     </li>

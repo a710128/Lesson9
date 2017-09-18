@@ -29,18 +29,37 @@
             adjustHeightAndWidth();
         });
 
-        var updateAccountList = function() {
+        window.updateAccountList = function() {
             $.post('/account/list', {}, function(data){
-                $('#account-list-content').html(data);
+                var lst = $(data);
+                var lis = lst.find('a.list-group-item');
+                for (var i = 0; i < lis.length; ++ i) {
+                    (function(rr) {
+                        rr.click(function(){
+                            var uid = rr.find('.account-list-user-name').text();
+                            openUser(uid);
+                        });
+                    })(lis.eq(i));
+                }
+                $('#account-list-content').html(lst);
             });
         }
 
-        $('#account-manager').click(function() {
+
+        window.openUser = function(uid) {
+            alert(uid);
+        }
+
+        window.openAccountManager = function() {
             $.post('/account/manager', {}, function(data){
                 $('div.right_bar').html(data);
                 $('#account-list .list-group-item.active').removeClass('active');
                 $('#account-manager').addClass('active');
             });
+        }
+
+        $('#account-manager').click(function() {
+            openAccountManager();
         });
 
         updateAccountList();
