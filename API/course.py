@@ -16,8 +16,10 @@ class CourseException(Exception):
 
 def courseTimeParser(timeStr):
     assert isinstance(timeStr, str), "Parameter type error"
-    timeStr = re.subn('\\([^)]*\\)', '', timeStr)
+    timeStr, _ = re.subn('\([^)]*\)', '', timeStr)
     ret = []
+    if timeStr == '':
+        return []
     for item in timeStr.split(","):
         ws, pd = item.split('-')
         ret.append((int(ws), int(pd)))

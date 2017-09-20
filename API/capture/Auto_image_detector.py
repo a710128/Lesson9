@@ -1,21 +1,21 @@
 #encoding=utf-8
 import os.path as _Os_path
 
-from model import get_model
-from model import characters
-from model import width
-from model import height
-from model import n_len
+from .model import get_model
+from .model import characters
+from .model import width
+from .model import height
+from .model import n_len
 from keras.models import *
 from keras.layers import *
 from keras import backend as K
 import cv2
-from StringIO import StringIO
 import numpy as np
-
 import tensorflow as tf 
 
+model_path = _Os_path.join(_Os_path.sep.join(__file__.split(_Os_path.sep)[:-1]), 'model.predict_new.h5')
 
+predict_model = load_model(model_path)
 def Detector_single_image(image , model_dir = 'model.predict_new.h5'):
 	img = cv2.resize(image, (width, height))
 
@@ -29,14 +29,18 @@ def Detector_single_image(image , model_dir = 'model.predict_new.h5'):
 
 	out = ''.join([characters[x] for x in text_list[0]])
 
-	print(out)
+	return out
 
 '''
 example1
-predict_model = load_model('model.predict_new.h5')
+
 Detector_single_image('/home/liujiashuo/Desktop/img/2BFT.jpg')
 Detector_single_image('/home/liujiashuo/Desktop/img/2B3KV.jpg')
 Detector_single_image('/home/liujiashuo/Desktop/img/2B4F.jpg')
+
+
+Detector_single_image(cv2.imread('./TEST/YWP9H.jpg', cv2.IMREAD_ANYCOLOR))
+
 
 example2
 Detector_multi_images('/home/liujiashuo/Desktop/TEST' , 16)
@@ -44,8 +48,8 @@ Detector_multi_images('/home/liujiashuo/Desktop/TEST' , 16)
 '''
 
 
-        
 
+        
 
 
 

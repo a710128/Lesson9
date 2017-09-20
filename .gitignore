@@ -1,3 +1,4 @@
 .idea
 backup.pkl
 .DS_Store
+*.pyc

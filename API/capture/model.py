@@ -5,7 +5,6 @@ from keras import backend as K
 import numpy as np
 import random
 import datetime
-import cPickle
 import os
 import gc
 import string

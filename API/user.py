@@ -9,13 +9,37 @@ import urllib3
 from . import config
 from .course import Course, courseTimeParser
 import datetime
+import threading
+from queue import Queue
+
+
+urllib3.disable_warnings()
+
+
+def capture_idft_worker(qin):
+    from . import capture
+    while True:
+        img, qout = qin.get()
+        ret = capture.Detector_single_image(img)
+        qout.put(ret)
+
+queue_input = Queue()
+capture_thd = threading.Thread(target=capture_idft_worker, args=(queue_input,))
+capture_thd.setDaemon(True)
+capture_thd.start()
+
+def multhrdFunc(img):
+	qout = Queue()
+	queue_input.put((img, qout))
+	ret = qout.get()
+	return ret
 
 class UserException(Exception):
     def __init__(self, msg, err):
         super(UserException, self).__init__()
         self.msg = msg
         self.err = err
-
+    
     def __str__(self):
         return "UserError : " + self.msg
 
@@ -41,7 +65,7 @@ def parseCookie(cookie):
 
 
 def getCap(data):
-    img = cv2.imdecode(np.array(map(ord, list(data)), dtype='uint8'), cv2.IMREAD_ANYCOLOR)
+    img = cv2.imdecode(np.array(np.fromstring(data, np.uint8), dtype='uint8'), cv2.IMREAD_ANYCOLOR)
     return img
     '''
     while True:
@@ -78,12 +102,16 @@ class User:
         self.courses = []
         self.broken = False
         try:
-            self.login()
-        except Exception as e:
+            ctr = 0
+            while not self.login():
+                ctr += 1
+                if ctr > 20:
+                    raise UserException('Unknown Error', -1)
+        except UserException as e:
             print('User:', self.name, 'Error:', e)
             self.broken = True
 
-    def login(self, veriFunc=None) -> bool:
+    def login(self, veriFunc=multhrdFunc) -> bool:
         """
         Login, use vertFunc to get the verification code
         :param veriFunc: a function input: Image(numpy), output: Verification Code (str)
@@ -92,6 +120,9 @@ class User:
         if config.DEBUG:
             print("User : %s login!" % self.name)
             return True
+		
+        if self.broken:
+            raise UserException("Broken user", 3)
         self.cookie = {}
         http = urllib3.PoolManager()
         # get cookie and capture
@@ -106,10 +137,15 @@ class User:
         # visit login page
         http.request('GET', config.LOGIN_PAGE, headers=makeHeader(self.cookie))
 
-        if not isinstance(veriFunc, function):
+        if not callable(veriFunc):
             self.broken = True
             raise UserException("No default verification function now!", 1)
-
+        req_body = urllib.parse.urlencode({
+            'j_username': self.name,
+            'j_password': self.passwd,
+            'captchaflag': 'login1',
+            '_login_image_': veriFunc(getCap(res.data))
+        })
         res = http.request('POST', config.LOGIN_POST_PAGE,
                 headers=dict(makeHeader(self.cookie), **{
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -117,17 +153,12 @@ class User:
                     'Origin': config.WEB_PREFIX,
                     'Referer': config.LOGIN_PAGE,
                     'Cache-Control': 'max-age=0'
-            }), data=urllib.parse.urlencode({
-                    'j_username': self.name,
-                    'j_password': self.passwd,
-                    'captchaflag': 'login1',
-                    '_login_image_': veriFunc(getCap(res.data))
-            })
+            }), body= req_body, redirect=False
         )
         # success
         if 'Location' in res.headers and res.headers['Location'].find('/zhjw.do') != -1:
             return True
-        if 'Location' in res.headers and res.headers['Location'].find('login_error=error') != -1:
+        if ('Location' in res.headers and res.headers['Location'].find('login_error=error') != -1):
             self.broken = True
             raise UserException("Wrong username or password!", 2)
         # failure

@@ -4,15 +4,45 @@ from room import config
 import time
 import datetime
 import re
+import urllib
 
+def make_post_headers():
+    return {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Charset': 'UTF-8',
+        'Cache-Control': 'max-age=0'
+    }
 
-def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm: str):
-    post_data = config.RX_POST_STRING.format(token=token, flh=flh, kch=kch, kcm=kcm)
+def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm: str, type: int):
+    if type == 0: # RX
+        post_data = config.RX_POST_STRING.format(token=token, flh=urllib.parse.quote(flh.encode('gbk')), kch=urllib.parse.quote(kch.encode('gbk')), kcm=urllib.parse.quote(kcm.encode('gbk')))
+    elif type == 1: # BX
+        post_data = config.BX_POST_STRING.format(token=token)
+    elif type == 2: # XX
+        post_data = config.XX_POST_STRING.format(token=token)
+    elif type == 3: # TY
+        post_data = config.TY_POST_STRING.format(token=token, kch=urllib.parse.quote(kch.encode('gbk')), kcm=urllib.parse.quote(kcm.encode('gbk')))
+
     for course in clist:
-        post_data += "&p_rx_id={time_period}%3B".format(time_period=config.TIME_PERIOD) + course.kch + \
-                     '%3B' + course.kxh + '%3B'
-    post_data += '&goPageNumber=1'
-    data = user.request("POST", config.RX_POST_URL, body=post_data).data.decode('gbk')
+        if type == 0:
+            post_data += "&p_rx_id={time_period}%3B".format(time_period=config.TIME_PERIOD)
+        elif type == 1:
+            post_data += "&p_bxk_id={time_period}%3B".format(time_period=config.TIME_PERIOD)
+        elif type == 2:
+            post_data += "&p_xxk_id={time_period}%3B".format(time_period=config.TIME_PERIOD)
+        elif type == 3:
+            post_data += "&p_rxTy_id={time_period}%3B".format(time_period=config.TIME_PERIOD)
+        post_data += course.kch + '%3B' + course.kxh + '%3B'
+    
+    if type == 0: # RX
+        data = user.request("POST", config.RX_POST_URL, body=post_data, headers=make_post_headers()).data.decode('gbk')
+    elif type == 1: # BX
+        data = user.request("POST", config.BX_POST_URL, body=post_data, headers=make_post_headers()).data.decode('gbk')
+    elif type == 2: # XX
+        data = user.request("POST", config.XX_POST_URL, body=post_data, headers=make_post_headers()).data.decode('gbk')
+    elif type == 3: # TY
+        data = user.request("POST", config.TY_POST_URL, body=post_data, headers=make_post_headers()).data.decode('gbk')
+    
     val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
     if len(val) != 1:
         try:
@@ -30,10 +60,19 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
     okcourse = []
     if len(fails) == 1:
         fail = fails[0]
-        cids = re.findall(re.compile(r'课程([^\s]*)\s([0-9]+)(.*?)(:?\s!)'), fail)
-        for fkch, fkxh, freason in cids:
-            if freason.find('课余量已无') == -1:
-                fcourse.append((Course(kch=fkch, kxh=fkxh), freason))
+        cids = re.findall(re.compile(r'课程([^!]+)!'), fail)
+        for row in cids:
+            val = re.findall(re.compile(r'([^\s]*)\s+([0-9]+)(.*?)'), row)
+            if len(val) == 0:
+                val = re.findall(re.compile(r'(.*?)与已选课冲突,不能提交'), row)
+                if len(val) == 1:
+                    fcourse.append((Course(kch=val[0], kxh='*'), '与已选课冲突,不能提交'))
+                else:
+                    print('unknown row', row)
+            else:
+                kch, kxh, freason = val[0]
+                if freason.find('课余量已无') == -1:
+                    fcourse.append((Course(kch=kch, kxh=kxh), freason))
         for course in clist:
             find = False
             for c, _ in fcourse:
@@ -46,7 +85,6 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
         print('Unknown fails', fails)
     else:
         okcourse = clist
-
     return {
         'result': 'success',
         'token': ret_token,
@@ -56,7 +94,7 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
 
 
 class Room:
-    def __init__(self, name, desc, interval=3, flh: str = '', kch: str = '', kcm: str = ''):
+    def __init__(self, name, desc, interval=3, flh: str = '', kch: str = '', kcm: str = '', type: int = 0):
         assert isinstance(name, str) and isinstance(desc, str), "Parameter type error"
         self.name = name
         self.desc = desc
@@ -66,7 +104,8 @@ class Room:
         self.lastWork = dict()
         self.broken = False
         self.workers = 0
-
+        self.type = type
+        
         self.flh = flh
         self.kch = kch
         self.kcm = kcm
@@ -78,8 +117,15 @@ class Room:
         if config.DEBUG:
             self.tokens[user] = ""
             return
-
-        data = user.request('GET', config.RX_GET_URL).data.decode('gbk')
+        if self.type == 0: # RX
+            data = user.request('GET', config.RX_GET_URL).data.decode('gbk')
+        elif self.type == 1: # BX
+            data = user.request('GET', config.BX_GET_URL).data.decode('gbk')
+        elif self.type == 2: # XX
+            data = user.request('GET', config.XX_GET_URL).data.decode('gbk')
+        elif self.type == 3: # TY
+            data = user.request('GET', config.TY_GET_URL).data.decode('gbk')
+        
         val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
         if len(val) == 1:
             self.tokens[user] = val[0]
@@ -125,7 +171,7 @@ class Room:
             del self.bans[user][course]
 
     def _workerHolder(self, user: User, clist: list):
-        ret = getCourseWorker(user, clist, self.tokens[user], self.flh, self.kch, self.kcm)
+        ret = getCourseWorker(user, clist, self.tokens[user], self.flh, self.kch, self.kcm, self.type)
         if ret['result'] == 'broken':
             return
         if ret['result'] == 'relogin':
@@ -187,9 +233,21 @@ class Room:
         ret = {}
         while True:
             page += 1
-            data = user.request('POST', config.RX_POST_URL,
-                                body=config.RX_QUERY_STRING.format(
-                                    page=page, token=self.tokens[user], flh=self.flh, kch=self.kch, kcm=self.kcm)).data
+            if self.type == 0: # RX
+                data = user.request('POST', config.RX_POST_URL, 
+                             body=config.RX_QUERY_STRING.format(page=page,
+                             token=self.tokens[user], flh=urllib.parse.quote(self.flh.encode('gbk')), kch=urllib.parse.quote(self.kch.encode('gbk')), kcm=urllib.parse.quote(self.kcm.encode('gbk'))),
+                             headers=make_post_headers()).data
+            elif self.type == 1: # BX
+                data = user.request('GET', config.BX_GET_URL).data
+            elif self.type == 2: # XX
+                data = user.request('GET', config.XX_GET_URL).data
+            elif self.type == 3: # TY
+                data = user.request('POST', config.RX_POST_URL,
+                             body=config.TY_QUERY_STRING.format(page=page,
+                             token=self.tokens[user], kch=urllib.parse.quote(self.kch.encode('gbk')), kcm=urllib.parse.quote(self.kcm.encode('gbk'))),
+                             headers=make_post_headers()).data
+            
             data = data.decode('gbk')
             val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
             if len(val) != 1:
@@ -204,10 +262,12 @@ class Room:
                     # this user is broken
             self.tokens[user] = val[0]
             info = re.findall(re.compile(
-                r'\\[\\s*"[^"]*"\\s*,"([^"]+)"\\s*,"([^"]+)"\\s*,\\s*"[^"]*"\\s*,"([0-9]*)"\\s*,"([^"]*)"[^\\]]+\\]'),
+                r'\[\s*"[^"]*"\s*,"([^"]+)"\s*,"([^"]+)"\s*,\s*"[^"]*"\s*,"([0-9]*)"\s*,"([^"]*)"[^\]]+\]', re.S),
                               data)
-
             hasUdp = True
+            if len(info) < 20 or self.type == 1 or self.type == 2:
+                hasUdp = False
+           
             for kch, kxh, rest, timeList in info:
                 if rest == 0:
                     hasUdp = False
@@ -225,7 +285,12 @@ class Room:
 
         for c in ret:
             for u in self.user:
-                if c in self.bans[u]:
+                find = False
+                for b in self.bans[u].keys():
+                    if b == c:
+                        find = True
+                        break
+                if find:
                     continue
                 reqs[u].append(c)
 
