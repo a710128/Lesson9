@@ -77,3 +77,12 @@ div#account-list-content .list-group-item:last-child {
     border-bottom-right-radius: 0px;
     border-bottom-left-radius: 0px;
 }
+
+.account-item .broken {
+    color: red;
+}
+
+.account-item .working {
+    color: green;
+}
+

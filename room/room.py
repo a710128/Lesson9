@@ -2,6 +2,7 @@ import threading
 from API import User, Course, courseTimeParser, UserException
 from room import config
 import time
+import datetime
 import re
 
 
@@ -23,14 +24,34 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
             # this user is broken
 
     ret_token = val[0]
+    fails = re.findall(re.compile(r'showMsg\("([^"]*)"\)'), data)
 
-    # TODO: find out courses which are failed
+    fcourse = []
+    okcourse = []
+    if len(fails) == 1:
+        fail = fails[0]
+        cids = re.findall(re.compile(r'课程([^\s]*)\s([0-9]+)(.*?)(:?\s!)'), fail)
+        for fkch, fkxh, freason in cids:
+            if freason.find('课余量已无') == -1:
+                fcourse.append((Course(kch=fkch, kxh=fkxh), freason))
+        for course in clist:
+            find = False
+            for c, _ in fcourse:
+                if c == course:
+                    find = True
+                    break
+            if not find:
+                okcourse.append(course)
+    elif len(fails) > 1:
+        print('Unknown fails', fails)
+    else:
+        okcourse = clist
 
     return {
         'result': 'success',
         'token': ret_token,
-        'course': [],   # FIXME
-        'bans': []      # FIXME
+        'course': okcourse,
+        'bans': fcourse
     }
 
 
@@ -94,8 +115,14 @@ class Room:
         self.__lock.release()
         return ret
 
-    def addBan(self, user: User, course: Course, reason: str):
+    def addBan(self, user: User, kch: str, kxh: str, reason: str):
+        course = Course(kch=kch, kxh=kxh)
         self.bans[user][course] = reason
+
+    def delBan(self, user: User, kch: str, kxh: str):
+        course = Course(kch=kch, kxh=kxh)
+        if course in self.bans[user]:
+            del self.bans[user][course]
 
     def _workerHolder(self, user: User, clist: list):
         ret = getCourseWorker(user, clist, self.tokens[user], self.flh, self.kch, self.kcm)
@@ -106,8 +133,11 @@ class Room:
             return
         if ret['result'] == 'success':
             self.tokens[user] = ret['token']
-            for ban in ret['bans']:
-                self.bans[user][ban] = "不能选到该课程"
+            for ban, reason in ret['bans']:
+                self.bans[user][ban] = reason
+            for course in ret['course']:
+                print(datetime.datetime.now().strftime('%m-%d %H:%M:%S'), '[info]', 'Room:', self.name, 'User:',
+                      user.name, 'course:', course.kch, course.kxh)
             return
         raise AssertionError("Unknown result")
 
@@ -131,19 +161,26 @@ class Room:
         return mnUser
 
     def loop(self):
+        lst = 0
         while True:
             user = self.getNextUser()
             if user is None or self.workers == 0:
                 return  # no user in this room
             else:
-                time.sleep((self.interval + 0.5) / self.workers)
+                if lst == 0:
+                    lst = time.time()
+                shouldWait = max((self.interval + 0.5) / self.workers - (time.time() - lst), 0.1)
+                time.sleep(shouldWait)
                 self.__lock.acquire()
                 self.run(user)
                 self.__lock.release()
+                lst = time.time()
 
     def run(self, user: User):
         assert isinstance(user, User), "Parameter type error"
         if config.DEBUG:
+            time.sleep(0.6)
+            print(datetime.datetime.now().strftime('%m-%d %H:%M:%S'), '[debug]', 'Room:', self.name, 'User:', user.name)
             return
         page = 0
 
@@ -152,7 +189,7 @@ class Room:
             page += 1
             data = user.request('POST', config.RX_POST_URL,
                                 body=config.RX_QUERY_STRING.format(
-                                    page=page, token=self.tokens[user], flh=self.flh, kch=self.kch, kcm=self.kcm))
+                                    page=page, token=self.tokens[user], flh=self.flh, kch=self.kch, kcm=self.kcm)).data
             data = data.decode('gbk')
             val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
             if len(val) != 1:

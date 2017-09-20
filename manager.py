@@ -17,10 +17,11 @@ class Manager:
         self.__lock = threading.Lock()
 
     def dump(self):
-        pickle.dump({
+        """pickle.dump({
             'rooms': self.rooms,
             'ship': self.ship
-        }, open('backup.pkl', 'wb'))
+        }, open('backup.pkl', 'wb'))"""
+        pass
 
     def getUser(self, uid: str) -> User:
         assert isinstance(uid, str), "Parameter type error"
@@ -59,7 +60,10 @@ class Manager:
         self.__lock.release()
 
     def exitRoom(self, uid):
-        user = self.getUser(uid)
+        if isinstance(uid, User):
+            user = uid
+        else:
+            user = self.getUser(uid)
         if user is None:
             return
         self.__lock.acquire()
@@ -115,3 +119,35 @@ class Manager:
         thds = [threading.Thread(target=self._roomHandler, args=(r, )) for r in self.rooms]
         for t in thds:
             t.start()
+
+    def getUserRoom(self, user: User):
+        return self.ship[user]
+
+    def getRoomInfo(self):
+        ret = []
+        self.__lock.acquire()
+        for room in self.rooms:
+            if not room.broken:
+                ret.append({
+                    'name': room.name,
+                    'desc': room.desc,
+                    'id': room.roomId,
+                    'workers': room.workers
+                })
+        self.__lock.release()
+        return ret
+
+    def getRoom(self, rid) -> Room:
+        ret = None
+        self.__lock.acquire()
+        for room in self.rooms:
+            if room.roomId == rid:
+                ret = room
+                break
+        self.__lock.release()
+        return ret
+
+    def createRoom(self, name: str, desc: str, flh: str, kch: str, kcm: str, user: User):
+        room = Room(name, desc, 3, flh, kch, kcm)
+        self.exitRoom(user)
+        self.joinRoom(room, user)

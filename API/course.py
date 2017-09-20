@@ -38,6 +38,13 @@ class Course:
         else:
             raise CourseException("Invalid parameters when Course __init__!", 1)
 
+        self.name = ''
+        self.teacher = ''
+        self.time = []
+        self.score = 0
+        self.feature = ''
+        self.other = ''
+
         params = {
             'name': 'Unknown',
             'teacher': 'Unknown',

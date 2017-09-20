@@ -11,6 +11,7 @@
 <body>
 <script>
     $(document).ready(function(){
+        nowUser = 0;
         (function(time){
             var t = time;
             $('#clock span').text(t.toLocaleString());
@@ -22,7 +23,7 @@
         var adjustHeightAndWidth = function() {
             $('.page_main').height(window.innerHeight - $('.navigation').height());
             $('.page_main .right_bar').width($(".page_main").innerWidth() - $(".left_bar").width());
-        }
+        };
 
         adjustHeightAndWidth();
         $(window).resize(function(){
@@ -38,25 +39,79 @@
                         rr.click(function(){
                             var uid = rr.find('.account-list-user-name').text();
                             openUser(uid);
+                            $('#account-list .list-group-item.active').removeClass('active');
+                            rr.addClass('active');
                         });
                     })(lis.eq(i));
                 }
                 $('#account-list-content').html(lst);
             });
-        }
+        };
 
 
         window.openUser = function(uid) {
-            alert(uid);
-        }
+            $.post('/rooms/info', {
+                'uid': uid
+            }, function(data) {
+                if (data != 'Error') {
+                    var vw = $(data);
+                    var lis = vw.find('.room-info-block');
+                    for (var i = 0; i < lis.length; ++ i) {
+                        (function(i){
+                            var id = lis.eq(i).attr('id').slice(5);
+                            lis.eq(i).click(function(){
+                                openRoom(id);
+                            });
+                        })(i);
+                    }
+                    $('div.right_bar').html(vw);
+                    nowUser = uid;
+                }
+            });
+        };
+
+        window.openAddRoom = function(uid) {
+            $.post('/rooms/add', {
+                'uid': uid
+            }, function(data) {
+                var vw = $(data);
+                vw.find('#add-room-btn').click(function(){
+                    $.post('/rooms/do_add', {
+                        'name': vw.find('#add-room-name').val(),
+                        'desc': vw.find('#add-room-desc').val(),
+                        'flh': vw.find('#add-room-flh').val(),
+                        'kch': vw.find('#add-room-kch').val(),
+                        'kcm': vw.find('#add-room-kcm').val(),
+                        'uid': nowUser
+                    }, function(data){
+                        if (data == 'Error') {
+                            alert('Error');
+                        }
+                        else {
+                            openUser(nowUser);
+                        }
+                    });
+                });
+                $('div.right_bar').html(vw);
+            });
+        };
 
         window.openAccountManager = function() {
             $.post('/account/manager', {}, function(data){
+                nowUser = 0;
                 $('div.right_bar').html(data);
                 $('#account-list .list-group-item.active').removeClass('active');
                 $('#account-manager').addClass('active');
             });
-        }
+        };
+
+        window.openRoom = function(rid) {
+            $.post('/rooms/show_detail', {
+                'rid': rid
+            }, function(data) {
+                $('div.right_bar').html(data);
+            });
+        };
 
         $('#account-manager').click(function() {
             openAccountManager();
@@ -64,7 +119,6 @@
 
         updateAccountList();
     });
-
 </script>
 
 <div class="navigation">

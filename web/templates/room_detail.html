@@ -1,0 +1,158 @@
+<style>
+#room-detail {
+    padding-left: 25px;
+    padding-right: 35px;
+}
+
+#room-detail-desc {
+    warp-word: break-word;
+    word-break: break-all;
+    padding-left: 25px;
+    color: #888;
+}
+
+#room-detail-worker {
+    color: #666;
+}
+
+#room-detail-roomid {
+    color: #888;
+    font-size: 10px;
+    padding-left: 45px;
+}
+
+#room-detail-join,
+#room-detail-exit {
+    float: right;
+    margin-right: 15px;
+}
+
+#room-detail-button-group {
+    padding-right: 45px;
+}
+
+#room-ban-add {
+    margin-left: auto;
+    margin-right: 45px;
+}
+
+#add-ban-kch,
+#add-ban-kxh {
+    margin-right: 35px;
+    margin-left: 10px;
+}
+
+button.remove-ban-btn {
+    position: absolute;
+    right: 45px;
+    top: 5px;
+}
+
+.ban-kid {
+    margin-left: 25px;
+    font-size: 18px;
+}
+.ban-reason {
+    margin-left: 45px;
+    font-size: 14px;
+}
+
+#room-ban-list {
+    margin-top: 50px;
+}
+</style>
+<script>
+$(function(){
+{% if room.in_room %}
+    $('#room-detail-button-group #room-detail-exit').click(function(){
+        $.post('/rooms/exit', {
+            'uid': nowUser
+        }, function(data) {
+            if (data == 'Error')
+                alert('Error');
+            else
+                openUser(nowUser);
+        });
+    });
+    $('#room-ban-add').click(function(){
+        $.post('/rooms/add_ban', {
+            'kch': $('#add-ban-kch').val(),
+            'kxh': $('#add-ban-kxh').val(),
+            'uid': nowUser
+        }, function(data) {
+            if (data == 'Error')
+                alert('Error');
+            else
+                openUser(nowUser);
+        });
+    });
+    var btns = $('.remove-ban-btn');
+    for (var i = 0; i < btns.length; ++ i) (function(i) {
+        btns.eq(i).click(function(){
+            var kch = btns.eq(i).attr('kch-data');
+            var kxh = btns.eq(i).attr('kxh-data');
+            $.post('/rooms/del_ban', {
+                'kch': kch,
+                'kxh': kxh,
+                'uid': nowUser
+            }, function(data) {
+                if (data == 'Error')
+                    alert('Error');
+                else
+                    openUser(nowUser);
+            });
+        });
+    })(i);
+{% else %}
+    $('#room-detail-button-group #room-detail-join').click(function(){
+        $.post('/rooms/join', {
+            'uid': nowUser,
+            'rid': '{{ room.id }}'
+        }, function(data) {
+            if (data == 'Error')
+                alert('Error');
+            else
+                openUser(nowUser);
+        });
+    });
+{% endif %}
+});
+</script>
+<div id="room-detail">
+    <h3 id="room-detail-title">{{ room.name }}<span id="room-detail-roomid">ID: {{ room.id }}</span></h3>
+    <p>简介：</p>
+    <p id="room-detail-desc">
+        {{ room.desc|safe }}
+    </p>
+    <p id="room-detail-worker">{{ room.workers }} User(s)</p>
+    <p id="room-detail-flh">分类号：{{ room.flh }}</p>
+    <p id="room-detail-kcm">课程名：{{ room.kcm }}</p>
+    <p id="room-detail-kch">课程号：{{ room.kch }}</p>
+</div>
+<div id="room-detail-button-group">
+{% if room.in_room %}
+    <button id="room-detail-exit" class="btn btn-danger">Exit</button>
+    <button id="room-detail-join" class="btn btn-success disabled">Join</button>
+{% else %}
+    <button id="room-detail-exit" class="btn btn-danger disabled">Exit</button>
+    <button id="room-detail-join" class="btn btn-success">Join</button>
+{% endif %}
+</div>
+{% if room.in_room %}
+<div id="room-ban-list" class="list-group">
+    <a class="list-group-item">
+        <div>
+            课程号:<input id="add-ban-kch">
+            课序号:<input id="add-ban-kxh">
+            <button id="room-ban-add" class="btn btn-default">Ban</button>
+        </div>
+    </a>
+    {% for ban in room.ban_list %}
+    <a class="list-group-item room-ban-list-block">
+        <span class="ban-kid">{{ ban.kch}}:{{ ban.kxh }}</span>
+        <span class="ban-reason">{{ ban.reason }}</span>
+        <button class="remove-ban-btn btn btn-danger" kch-data="{{ ban.kch }}" kxh-data="{{ ban.kxh }}">X</button>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}

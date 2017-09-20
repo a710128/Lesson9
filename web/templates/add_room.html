@@ -1,0 +1,36 @@
+<style>
+#add-room-div table th {
+    width: 120px;
+}
+
+#add-room-div table td {
+    width: auto;
+}
+
+#add-room-div table td input,
+#add-room-div table td textarea {
+    width: 100%;
+}
+
+#add-room-div {
+    margin-top: 25px;
+    padding-left: 25px;
+    padding-right: 35px;
+}
+
+#add-room-div #add-room-btn {
+    float: right;
+    margin-right: 45px;
+}
+
+</style>
+<div id="add-room-div">
+    <table class="table">
+        <tr><th>房间名:</th><td><input type="text" id="add-room-name"></td></tr>
+        <tr><th>描述:</th><td><textarea id="add-room-desc"></textarea></td></tr>
+        <tr><th>分类号:</th><td><input type="number" id="add-room-flh"></td></tr>
+        <tr><th>课程号:</th><td><input type="text" id="add-room-kch"></td></tr>
+        <tr><th>课程名:</th><td><input type="text" id="add-room-kcm"></td></tr>
+        <tr><td colspan="2"><button id="add-room-btn" class="btn btn-default">创建</button></td></tr>
+    </table>
+</div>

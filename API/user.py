@@ -8,7 +8,7 @@ import urllib3
 
 from . import config
 from .course import Course, courseTimeParser
-
+import datetime
 
 class UserException(Exception):
     def __init__(self, msg, err):
@@ -155,7 +155,11 @@ class User:
             headers = {}
         assert isinstance(method, str) and isinstance(url, str) and isinstance(headers, dict), "Parameter type error"
         http = urllib3.PoolManager()
-        return http.request(method, url, headers=dict(makeHeader(self.cookie), **headers), **kwargs)
+        ret = http.request(method, url, headers=dict(makeHeader(self.cookie), **headers), **kwargs)
+        if ret is None:
+            print(datetime.datetime.now().strftime('%m-%d %H:%M:%S'), '[error]', 'User:', self.name,
+                  'request error', 'url:', url, 'headers:', dict(makeHeader(self.cookie), **headers), 'args:', kwargs)
+        return ret
 
     def __str__(self):
         return self.name

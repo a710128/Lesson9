@@ -14,4 +14,4 @@ LOGIN_POST_PAGE = WEB_PREFIX + "j_acegi_formlogin_xsxk.do"
 """======= Urls ======="""
 
 
-DEBUG = True
+DEBUG = False

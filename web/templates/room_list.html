@@ -1,0 +1,28 @@
+<style>
+#room-list p.room-title {
+    font-size: 22px;
+    font-weight: bold;
+}
+#room-list p.room-title span {
+    font-size: 10px;
+    color: #666;
+    padding-left: 25px;
+}
+#room-list p.room-description {
+    color: #888;
+    font-size: 14px;
+}
+</style>
+<div id="room-list" class="list-group">
+    <a class="list-group-item">
+        <div>
+            <button class="btn btn-default" onclick="openAddRoom();">Add</button>
+        </div>
+    </a>
+    {% for room in rooms: %}
+    <a href="#" class="list-group-item room-info-block" id="room-{{ room.id }}">
+        <p class="room-title">{{ room.name }}<span>({{ room.workers }})</span></p>
+        <p class="room-description">{{ room.desc }}</p>
+    </a>
+    {% endfor %}
+</div>
