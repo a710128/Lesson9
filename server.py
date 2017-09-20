@@ -17,6 +17,15 @@ def replaceReturn(str):
     return '<br>'.join(map(lambda x:flask.escape(x) ,str.split('\n')))
 
 
+def checkUserInList(uid, lst):
+    find = False
+    for u in lst:
+        if u['name'] == uid:
+            find = True
+            break
+    return find
+
+
 @app.route("/", methods=['GET'])
 def default_page():
     return flask.redirect(flask.url_for("index"))
@@ -74,9 +83,11 @@ def del_account():
     if uid == '':
         return 'Error'
     else:
+        users = flask.session.get('accounts', [])
+        if not checkUserInList(uid, users):
+            return 'Error'
         manager.delUser(uid)
         # update session
-        users = flask.session.get('accounts', [])
         opt = []
         for user in users:
             if user['name'] != uid:
@@ -92,6 +103,10 @@ def room_info():
         return 'Error'
     else:
         user = manager.getUser(uid)
+        users = flask.session.get('accounts', [])
+        if not checkUserInList(uid, users):
+            return 'Error'
+        
         room = manager.getUserRoom(user)
         if room is None:
             rooms = manager.getRoomInfo()
@@ -157,6 +172,10 @@ def do_add_room():
     kch = flask.request.form.get('kch', '')
     kcm = flask.request.form.get('kcm', '')
     uid = flask.request.form.get('uid', '')
+    
+    users = flask.session.get('accounts', [])
+    if not checkUserInList(uid, users):
+        return 'Error'
 
     if name == '' or uid == '':
         return 'Error'
@@ -173,6 +192,10 @@ def do_add_room():
 def join_room():
     uid = flask.request.form.get('uid', '')
     rid = flask.request.form.get('rid', '')
+    
+    users = flask.session.get('accounts', [])
+    if not checkUserInList(uid, users):
+        return 'Error'
     if uid == '' or rid == '':
         return 'Error'
     else:
@@ -192,6 +215,9 @@ def join_room():
 @app.route('/rooms/exit', methods=["POST"])
 def exit_room():
     uid = flask.request.form.get('uid', '')
+    users = flask.session.get('accounts', [])
+    if not checkUserInList(uid, users):
+        return 'Error'
     if uid == '':
         return 'Error'
     else:
@@ -204,6 +230,9 @@ def add_ban():
     kch = flask.request.form.get('kch', '')
     kxh = flask.request.form.get('kxh', '')
     uid = flask.request.form.get('uid', '')
+    users = flask.session.get('accounts', [])
+    if not checkUserInList(uid, users):
+        return 'Error'
     if kch == '' or kxh == '' or uid == '':
         return 'Error'
     else:
@@ -218,6 +247,9 @@ def del_ban():
     uid = flask.request.form.get('uid', '')
     kch = flask.request.form.get('kch', '')
     kxh = flask.request.form.get('kxh', '')
+    users = flask.session.get('accounts', [])
+    if not checkUserInList(uid, users):
+        return 'Error'
     if kch == '' or kxh == '' or uid == '':
         return 'Error'
     else:
@@ -225,12 +257,6 @@ def del_ban():
         room = manager.getUserRoom(user)
         room.delBan(user, kch, kxh)
         return 'OK'
-
-
-@app.route('/server/dump', methods=["GET"])
-def dump_server():
-    manager.dump()
-    return 'OK'
 
 
 def main():
