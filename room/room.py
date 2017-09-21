@@ -58,17 +58,24 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
 
     fcourse = []
     okcourse = []
+    
     if len(fails) == 1:
         fail = fails[0]
         cids = re.findall(re.compile(r'课程([^!]+)!'), fail)
         for row in cids:
-            val = re.findall(re.compile(r'([^\s]*)\s+([0-9]+)(.*?)'), row)
+            val = re.findall(re.compile(r'[^0-9SX]*([0-9SX]+)\s+([0-9]+)(.*)'), row)
             if len(val) == 0:
-                val = re.findall(re.compile(r'(.*?)与已选课冲突,不能提交'), row)
+                val = re.findall(re.compile(r'[^0-9SX]*([0-9SX]+)课序号([0-9]+)(.*)'), row)
                 if len(val) == 1:
-                    fcourse.append((Course(kch=val[0], kxh='*'), '与已选课冲突,不能提交'))
+                    kch, kxh, freason = val[0]
+                    fcourse.append((Course(kch=kch, kxh=kxh), freason))
                 else:
-                    print('unknown row', row)
+                    val = re.findall(re.compile(r'[^0-9SX]*([0-9SX]+)(.*)'), row)
+                    if len(val) == 1:
+                        kch, freason = val[0]
+                        fcourse.append((Course(kch=kch, kxh='*'), freason))
+                    else:
+                        print('unknown row', row)
             else:
                 kch, kxh, freason = val[0]
                 if freason.find('课余量已无') == -1:
@@ -158,6 +165,8 @@ class Room:
             del self.tokens[user]
             del self.bans[user]
             ret = True
+        else:
+            print('Can\'t find user:', user.name)
         self.__lock.release()
         return ret
 
@@ -181,24 +190,29 @@ class Room:
             self.tokens[user] = ret['token']
             for ban, reason in ret['bans']:
                 self.bans[user][ban] = reason
+                print(datetime.datetime.now().strftime('%m-%d %H:%M:%S'), '[info]', 'Room:', self.name, 'User:',
+                      user.name, 'course:', ban.kch, ban.kxh, 'Reason:', reason)
             for course in ret['course']:
                 print(datetime.datetime.now().strftime('%m-%d %H:%M:%S'), '[info]', 'Room:', self.name, 'User:',
                       user.name, 'course:', course.kch, course.kxh)
             return
         raise AssertionError("Unknown result")
-
-    def getNextUser(self):
-        self.__lock.acquire()
-        mnUser = None
+    
+    def udpWorkers(self):
         self.workers = 0
         for user in self.lastWork.keys():
             if user.broken:
                 continue
             self.workers += 1
+    
+    def getNextUser(self):
+        mnUser = None
+        for user in self.lastWork.keys():
+            if user.broken:
+                continue
             if (mnUser is None) or (self.lastWork[mnUser] > self.lastWork[user]):
                 mnUser = user
         self.lastWork[mnUser] = time.time()
-        self.__lock.release()
         if mnUser is None:
             self.broken = True
         else:
@@ -209,15 +223,19 @@ class Room:
     def loop(self):
         lst = 0
         while True:
+            if lst == 0:
+                lst = time.time()
+            self.__lock.acquire()
+            self.udpWorkers()
+            self.__lock.release()
+            shouldWait = max((self.interval + 0.5) / self.workers - (time.time() - lst), 0.1)
+            time.sleep(shouldWait)
+            self.__lock.acquire()
             user = self.getNextUser()
             if user is None or self.workers == 0:
+                self.__lock.release()
                 return  # no user in this room
             else:
-                if lst == 0:
-                    lst = time.time()
-                shouldWait = max((self.interval + 0.5) / self.workers - (time.time() - lst), 0.1)
-                time.sleep(shouldWait)
-                self.__lock.acquire()
                 self.run(user)
                 self.__lock.release()
                 lst = time.time()
@@ -235,7 +253,7 @@ class Room:
             page += 1
             if self.type == 0: # RX
                 data = user.request('POST', config.RX_POST_URL, 
-                             body=config.RX_QUERY_STRING.format(page=page,
+                             body=config.RX_QUERY_STRING.format(page= '' if page == 1 else page,
                              token=self.tokens[user], flh=urllib.parse.quote(self.flh.encode('gbk')), kch=urllib.parse.quote(self.kch.encode('gbk')), kcm=urllib.parse.quote(self.kcm.encode('gbk'))),
                              headers=make_post_headers()).data
             elif self.type == 1: # BX
@@ -244,10 +262,9 @@ class Room:
                 data = user.request('GET', config.XX_GET_URL).data
             elif self.type == 3: # TY
                 data = user.request('POST', config.RX_POST_URL,
-                             body=config.TY_QUERY_STRING.format(page=page,
+                             body=config.TY_QUERY_STRING.format(page= '' if page == 1 else page,
                              token=self.tokens[user], kch=urllib.parse.quote(self.kch.encode('gbk')), kcm=urllib.parse.quote(self.kcm.encode('gbk'))),
                              headers=make_post_headers()).data
-            
             data = data.decode('gbk')
             val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
             if len(val) != 1:
@@ -267,9 +284,9 @@ class Room:
             hasUdp = True
             if len(info) < 20 or self.type == 1 or self.type == 2:
                 hasUdp = False
-           
+            
             for kch, kxh, rest, timeList in info:
-                if rest == 0:
+                if int(rest) == 0:
                     hasUdp = False
                     continue
                 course = Course(kch=kch, kxh=kxh, time=courseTimeParser(timeList))
@@ -278,7 +295,6 @@ class Room:
                 break
         if len(ret) == 0:
             return  # early stop to speed up
-
         reqs = {}
         for u in self.user:
             reqs[u] = []
@@ -293,7 +309,6 @@ class Room:
                 if find:
                     continue
                 reqs[u].append(c)
-
         thds = []
         for u in reqs.keys():
             if len(reqs[u]) == 0:

@@ -36,14 +36,18 @@ class Manager:
 
     def addUser(self, uid: str, passwd: str) -> User:
         assert isinstance(uid, str) and isinstance(passwd, str), "Parameter type error"
+        print('Try to login User:', uid)
         if self.getUser(uid) is not None:
+            print('User:', uid, 'already logined!')
             return None
         try:
             user = User(uid, passwd)
         except UserException as e:
+            print('User:', uid, e)
             return None
         self.__lock.acquire()
         self.ship[user] = None
+        print('User:', uid, 'login ok!')
         self.__lock.release()
         return user
 
@@ -79,7 +83,6 @@ class Manager:
         if not (self.ship[user] is None):
             self.ship[user].delUser(user)
             self.ship[user] = None
-
         if isinstance(room, int):
             it = 0
             while it < len(self.rooms):
@@ -127,7 +130,7 @@ class Manager:
         ret = []
         self.__lock.acquire()
         for room in self.rooms:
-            if not room.broken:
+            if not room.broken and (len(room.name) == 0 or room.name[0] != '$'):
                 ret.append({
                     'name': room.name,
                     'desc': room.desc,
@@ -147,7 +150,7 @@ class Manager:
         self.__lock.release()
         return ret
 
-    def createRoom(self, name: str, desc: str, flh: str, kch: str, kcm: str, user: User):
-        room = Room(name, desc, 3, flh, kch, kcm)
+    def createRoom(self, name: str, desc: str, flh: str, kch: str, kcm: str, user: User, type: int):
+        room = Room(name, desc, 3, flh, kch, kcm, type)
         self.exitRoom(user)
         self.joinRoom(room, user)

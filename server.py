@@ -4,7 +4,9 @@ from manager import Manager
 import time
 import os
 import pickle
-
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 
 manager = None
 
@@ -172,7 +174,7 @@ def do_add_room():
     kch = flask.request.form.get('kch', '')
     kcm = flask.request.form.get('kcm', '')
     uid = flask.request.form.get('uid', '')
-    
+    type = flask.request.form.get('type', '')
     users = flask.session.get('accounts', [])
     if not checkUserInList(uid, users):
         return 'Error'
@@ -182,8 +184,12 @@ def do_add_room():
     else:
         user = manager.getUser(uid)
         if user is not None:
-            manager.createRoom(name, desc, flh, kch, kcm, user)
-            return 'OK'
+            type = int(type)
+            if type < 0 or type > 3:
+                return 'Error'
+            else:
+                manager.createRoom(name, desc, flh, kch, kcm, user, type)
+                return 'OK'
         else:
             return 'Error'
 
@@ -260,7 +266,10 @@ def del_ban():
 
 
 def main():
-    app.run(host="0.0.0.0", port=8127)
+    #app.run(host="0.0.0.0", port=8127)
+    http_server = HTTPServer(WSGIContainer(app))
+    http_server.listen(8127)  #flask默认的端口
+    IOLoop.instance().start()
 
 if __name__ == '__main__':
     try:

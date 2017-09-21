@@ -125,7 +125,55 @@ $(function(){
         {{ room.desc|safe }}
     </p>
     <p id="room-detail-worker">{{ room.workers }} User(s)</p>
-    <p id="room-detail-flh">分类号：{{ room.flh }}</p>
+    <p id="room-detail-type"> 大类：
+        {% if room.type == 0 %}
+            任选
+        {% elif room.type == 1 %}
+            必修
+        {% elif room.type == 2 %}
+            限选
+        {% elif room.type == 3 %}
+            体育
+        {% endif %}
+    </p>
+    <p id="room-detail-flh">分类号：
+        {% if room.flh == '' %}
+        {% elif room.flh == '05' %}
+            专题研讨课
+        {% elif room.flh == '01' %}
+            全外文授课
+        {% elif room.flh == '13' %}
+            公共英语
+        {% elif room.flh == '02' %}
+            外文授课比例≥50%(双语课)
+        {% elif room.flh == '03' %}
+            外文教材，中文为主进行授课(双语课)
+        {% elif room.flh == '11' %}
+            实践课
+        {% elif room.flh == '10' %}
+            实验课
+        {% elif room.flh == '09' %}
+            挑战性学习课程
+        {% elif room.flh == '06' %}
+            文化素质核心课
+        {% elif room.flh == '07' %}
+            文化素质课
+        {% elif room.flh == '04' %}
+            新生研讨课
+        {% elif room.flh == '17' %}
+            新生研讨课(环化材类)
+        {% elif room.flh == '12' %}
+            混合式教学
+        {% elif room.flh == '08' %}
+            精品课
+        {% elif room.flh == '16' %}
+            英语专业
+        {% elif room.flh == '15' %}
+            认证外文课
+        {% elif room.flh == '14' %}
+            通识英语
+        {% endif %}
+    </p>
     <p id="room-detail-kcm">课程名：{{ room.kcm }}</p>
     <p id="room-detail-kch">课程号：{{ room.kch }}</p>
 </div>

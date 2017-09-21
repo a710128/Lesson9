@@ -18,9 +18,9 @@ def courseTimeParser(timeStr):
     assert isinstance(timeStr, str), "Parameter type error"
     timeStr, _ = re.subn('\([^)]*\)', '', timeStr)
     ret = []
-    if timeStr == '':
-        return []
     for item in timeStr.split(","):
+        if item == '':
+            continue
         ws, pd = item.split('-')
         ret.append((int(ws), int(pd)))
     return ret

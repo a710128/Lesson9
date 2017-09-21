@@ -22,7 +22,7 @@
         })(new Date("{{ timer }}"));
         var adjustHeightAndWidth = function() {
             $('.page_main').height(window.innerHeight - $('.navigation').height());
-            $('.page_main .right_bar').width($(".page_main").innerWidth() - $(".left_bar").width());
+            $('.page_main .right_bar').width($(".page_main").innerWidth() - $(".left_bar").width() - 10);
         };
 
         adjustHeightAndWidth();
@@ -45,6 +45,7 @@
                     })(lis.eq(i));
                 }
                 $('#account-list-content').html(lst);
+                adjustHeightAndWidth();
             });
         };
 
@@ -65,6 +66,7 @@
                         })(i);
                     }
                     $('div.right_bar').html(vw);
+                    adjustHeightAndWidth();
                     nowUser = uid;
                 }
             });
@@ -79,6 +81,7 @@
                     $.post('/rooms/do_add', {
                         'name': vw.find('#add-room-name').val(),
                         'desc': vw.find('#add-room-desc').val(),
+                        'type': vw.find('#add-room-type').val(),
                         'flh': vw.find('#add-room-flh').val(),
                         'kch': vw.find('#add-room-kch').val(),
                         'kcm': vw.find('#add-room-kcm').val(),
@@ -93,6 +96,7 @@
                     });
                 });
                 $('div.right_bar').html(vw);
+                adjustHeightAndWidth();
             });
         };
 
@@ -100,6 +104,7 @@
             $.post('/account/manager', {}, function(data){
                 nowUser = 0;
                 $('div.right_bar').html(data);
+                adjustHeightAndWidth();
                 $('#account-list .list-group-item.active').removeClass('active');
                 $('#account-manager').addClass('active');
             });
@@ -110,6 +115,7 @@
                 'rid': rid
             }, function(data) {
                 $('div.right_bar').html(data);
+                adjustHeightAndWidth();
             });
         };
 

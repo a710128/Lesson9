@@ -28,7 +28,37 @@
     <table class="table">
         <tr><th>房间名:</th><td><input type="text" id="add-room-name"></td></tr>
         <tr><th>描述:</th><td><textarea id="add-room-desc"></textarea></td></tr>
-        <tr><th>分类号:</th><td><input type="number" id="add-room-flh"></td></tr>
+        <tr><th>大类:</th><td>
+            <select id="add-room-type" style="width: 140px;">
+                <option value="0">任选</option>
+                <option value="1">必修</option>
+                <option value="2">限选</option>
+                <option value="3">体育</option>
+            </select>
+        </td></tr>
+        <tr><th>分类:</th><td>
+            <select id="add-room-flh" style="width: 140px;">
+				<option value=""></option>
+                <option value="05" title="专题研讨课">专题研讨课</option>
+                <option value="01" title="全外文授课">全外文授课</option>
+                <option value="13" title="公共英语">公共英语</option>
+                <option value="02" title="外文授课比例≥50%(双语课)">外文授课比例≥50%(双语课)</option>
+                <option value="03" title="外文教材，中文为主进行授课(双语课)">外文教材，中文为主进行授课(双语课)</option>
+                <option value="11" title="实践课">实践课</option>
+                <option value="10" title="实验课">实验课</option>
+                <option value="09" title="挑战性学习课程">挑战性学习课程</option>
+                <option value="06" title="文化素质核心课">文化素质核心课</option>
+                <option value="07" title="文化素质课">文化素质课</option>
+                <option value="04" title="新生研讨课">新生研讨课</option>
+                <option value="17" title="新生研讨课(环化材类)">新生研讨课(环化材类)</option>
+                <option value="12" title="混合式教学">混合式教学</option>
+                <option value="08" title="精品课">精品课</option>
+                <option value="16" title="英语专业">英语专业</option>
+                <option value="15" title="认证外文课">认证外文课</option>
+                <option value="14" title="通识英语">通识英语</option>
+                  
+            </select>
+        </td></tr>
         <tr><th>课程号:</th><td><input type="text" id="add-room-kch"></td></tr>
         <tr><th>课程名:</th><td><input type="text" id="add-room-kcm"></td></tr>
         <tr><td colspan="2"><button id="add-room-btn" class="btn btn-default">创建</button></td></tr>
