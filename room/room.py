@@ -43,7 +43,7 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
     elif type == 3: # TY
         data = user.request("POST", config.TY_POST_URL, body=post_data, headers=make_post_headers()).data.decode('gbk')
     
-    val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
+    val = re.findall(re.compile(r'name="token"\s*value="([^"]+)"', re.S), data)
     if len(val) != 1:
         try:
             while not user.login():
@@ -58,10 +58,9 @@ def getCourseWorker(user: User, clist: list, token: str, flh: str, kch: str, kcm
 
     fcourse = []
     okcourse = []
-    
     if len(fails) == 1:
         fail = fails[0]
-        cids = re.findall(re.compile(r'课程([^!]+)!'), fail)
+        cids = re.findall(re.compile(r'([^!]+)!'), fail)
         for row in cids:
             val = re.findall(re.compile(r'[^0-9SX]*([0-9SX]+)\s+([0-9]+)(.*)'), row)
             if len(val) == 0:
@@ -133,7 +132,7 @@ class Room:
         elif self.type == 3: # TY
             data = user.request('GET', config.TY_GET_URL).data.decode('gbk')
         
-        val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
+        val = re.findall(re.compile(r'name="token"\s*value="([^"]+)"', re.S), data)
         if len(val) == 1:
             self.tokens[user] = val[0]
         else:
@@ -228,7 +227,10 @@ class Room:
             self.__lock.acquire()
             self.udpWorkers()
             self.__lock.release()
-            shouldWait = max((self.interval + 0.5) / self.workers - (time.time() - lst), 0.1)
+            if self.workers == 0:
+                shouldWait = 3
+            else:
+                shouldWait = max((self.interval + 0.5) / self.workers - (time.time() - lst), 0.1)
             time.sleep(shouldWait)
             self.__lock.acquire()
             user = self.getNextUser()
@@ -266,7 +268,7 @@ class Room:
                              token=self.tokens[user], kch=urllib.parse.quote(self.kch.encode('gbk')), kcm=urllib.parse.quote(self.kcm.encode('gbk'))),
                              headers=make_post_headers()).data
             data = data.decode('gbk')
-            val = re.findall(re.compile(r'name="token" value="([^"]+)"'), data)
+            val = re.findall(re.compile(r'name="token"\s*value="([^"]+)"', re.S), data)
             if len(val) != 1:
                 try:
                     while not user.login():
@@ -284,10 +286,13 @@ class Room:
             hasUdp = True
             if len(info) < 20 or self.type == 1 or self.type == 2:
                 hasUdp = False
-            
+
             for kch, kxh, rest, timeList in info:
-                if int(rest) == 0:
-                    hasUdp = False
+                try:
+                    if int(rest) == 0:
+                        hasUdp = False
+                        continue
+                except ValueError as e:
                     continue
                 course = Course(kch=kch, kxh=kxh, time=courseTimeParser(timeList))
                 ret[course] = rest

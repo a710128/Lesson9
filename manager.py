@@ -37,9 +37,13 @@ class Manager:
     def addUser(self, uid: str, passwd: str) -> User:
         assert isinstance(uid, str) and isinstance(passwd, str), "Parameter type error"
         print('Try to login User:', uid)
-        if self.getUser(uid) is not None:
+        tmp_u = self.getUser(uid)
+        if tmp_u is not None:
             print('User:', uid, 'already logined!')
-            return None
+            if tmp_u.name == uid and tmp_u.passwd == passwd:
+                return tmp_u
+            else:
+                return None
         try:
             user = User(uid, passwd)
         except UserException as e:
